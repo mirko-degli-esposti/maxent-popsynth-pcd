@@ -1,3 +1,5 @@
+![banner](banner.svg)
+
 # maxent-popsynth-pcd
 
 **Scalable Maximum Entropy Population Synthesis via Persistent Contrastive Divergence**
