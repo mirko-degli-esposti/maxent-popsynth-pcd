@@ -93,6 +93,13 @@ class ExactMaxEntSolver:
         lam0         = np.zeros(self.cs.m)
         t_start      = time.time()
         step         = [0]
+                
+        def get_probs(self) -> np.ndarray:
+            """Return p_{lambda} over the full tuple space X."""
+            if self.lambdas is None:
+                raise RuntimeError("Call fit() before get_probs().")
+                log_unnorm = self.F @ self.lambdas
+                return np.exp(log_unnorm - logsumexp(log_unnorm))
 
         def callback(lam):
             _, grad = self._phi_and_grad(lam)
