@@ -1,0 +1,93 @@
+<svg width="680" height="200" viewBox="0 0 680 200" xmlns="http://www.w3.org/2000/svg">
+<style>
+  .bg { fill: #f8f8f8; }
+  .title { font-family: monospace; font-size: 22px; font-weight: 500; fill: #1a1a1a; letter-spacing: -0.5px; }
+  .sub { font-family: monospace; font-size: 12px; font-weight: 400; fill: #888; letter-spacing: 0.5px; }
+  .tag { font-family: monospace; font-size: 10px; font-weight: 400; fill: #aaa; }
+  .gridline { stroke: #e8e8e8; stroke-width: 0.5; fill: none; }
+  .edge { stroke: #ccc; stroke-width: 0.7; fill: none; }
+  .node-off { fill: #e4e4e4; stroke: #c8c8c8; stroke-width: 0.8; }
+  .node-mid { fill: #c0c0c0; stroke: #aaa; stroke-width: 0.8; }
+  .node-on  { fill: #1a1a1a; stroke: #1a1a1a; stroke-width: 0.8; }
+  .sweep-box { fill: none; stroke: #d8d8d8; stroke-width: 0.7; stroke-dasharray: 3 3; }
+  .accent { fill: #1a1a1a; }
+  .arrow { stroke: #bbb; stroke-width: 0.8; fill: none; marker-end: url(#arr); }
+</style>
+<defs>
+  <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+    <path d="M2 1L8 5L2 9" fill="none" stroke="#bbb" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  </marker>
+</defs>
+
+<rect width="680" height="200" rx="4" class="bg"/>
+
+<line x1="0" y1="40" x2="680" y2="40" class="gridline"/>
+<line x1="0" y1="80" x2="680" y2="80" class="gridline"/>
+<line x1="0" y1="120" x2="680" y2="120" class="gridline"/>
+<line x1="0" y1="160" x2="680" y2="160" class="gridline"/>
+<line x1="80"  y1="0" x2="80"  y2="200" class="gridline"/>
+<line x1="160" y1="0" x2="160" y2="200" class="gridline"/>
+<line x1="240" y1="0" x2="240" y2="200" class="gridline"/>
+<line x1="320" y1="0" x2="320" y2="200" class="gridline"/>
+<line x1="400" y1="0" x2="400" y2="200" class="gridline"/>
+<line x1="480" y1="0" x2="480" y2="200" class="gridline"/>
+<line x1="560" y1="0" x2="560" y2="200" class="gridline"/>
+<line x1="640" y1="0" x2="640" y2="200" class="gridline"/>
+
+<rect x="530" y="48" width="22" height="116" class="sweep-box" rx="2"/>
+
+<text x="509" y="44" class="tag" text-anchor="middle">A1</text>
+<text x="531" y="44" class="tag" text-anchor="middle" style="fill:#999">A2</text>
+<text x="553" y="44" class="tag" text-anchor="middle">A3</text>
+<text x="575" y="44" class="tag" text-anchor="middle">A4</text>
+<text x="597" y="44" class="tag" text-anchor="middle">A5</text>
+
+<text x="432" y="62"  class="tag" text-anchor="end">i=1</text>
+<text x="432" y="84"  class="tag" text-anchor="end">i=2</text>
+<text x="432" y="106" class="tag" text-anchor="end">i=3</text>
+<text x="432" y="128" class="tag" text-anchor="end">i=4</text>
+<text x="432" y="150" class="tag" text-anchor="end">i=5</text>
+
+<circle cx="509" cy="58"  r="5" class="node-mid"/>
+<circle cx="531" cy="58"  r="5" class="node-on"/>
+<circle cx="553" cy="58"  r="5" class="node-off"/>
+<circle cx="575" cy="58"  r="5" class="node-mid"/>
+<circle cx="597" cy="58"  r="5" class="node-off"/>
+
+<circle cx="509" cy="80"  r="5" class="node-off"/>
+<circle cx="531" cy="80"  r="5" class="node-mid"/>
+<circle cx="553" cy="80"  r="5" class="node-mid"/>
+<circle cx="575" cy="80"  r="5" class="node-off"/>
+<circle cx="597" cy="80"  r="5" class="node-on"/>
+
+<circle cx="509" cy="102" r="5" class="node-on"/>
+<circle cx="531" cy="102" r="5" class="node-off"/>
+<circle cx="553" cy="102" r="5" class="node-mid"/>
+<circle cx="575" cy="102" r="5" class="node-mid"/>
+<circle cx="597" cy="102" r="5" class="node-off"/>
+
+<circle cx="509" cy="124" r="5" class="node-mid"/>
+<circle cx="531" cy="124" r="5" class="node-on"/>
+<circle cx="553" cy="124" r="5" class="node-off"/>
+<circle cx="575" cy="124" r="5" class="node-on"/>
+<circle cx="597" cy="124" r="5" class="node-mid"/>
+
+<circle cx="509" cy="146" r="5" class="node-off"/>
+<circle cx="531" cy="146" r="5" class="node-mid"/>
+<circle cx="553" cy="146" r="5" class="node-on"/>
+<circle cx="575" cy="146" r="5" class="node-off"/>
+<circle cx="597" cy="146" r="5" class="node-mid"/>
+
+<line x1="450" y1="170" x2="616" y2="170" class="arrow"/>
+<text x="532" y="186" class="tag" text-anchor="middle">Gibbs sweep over attributes</text>
+
+<rect x="40" y="68" width="3" height="64" class="accent" rx="1"/>
+
+<text x="56" y="93" class="title">maxent-popsynth-pcd</text>
+<text x="56" y="114" class="sub">Scalable Maximum Entropy Population Synthesis</text>
+<text x="56" y="130" class="sub">via Persistent Contrastive Divergence</text>
+<text x="56" y="155" class="tag">Python · MaxEnt · Gibbs sampling · PCD · K≥50</text>
+
+<text x="432" y="186" class="tag" text-anchor="end">persistent pool</text>
+
+</svg>
