@@ -32,6 +32,7 @@ Key results:
 maxent-popsynth-pcd/
 │
 ├── src/
+    ├── evaluator.py
 │   ├── constraint_set.py      # ConstraintSet — core data structure
 │   ├── gibbs_pcd_solver.py    # GibbsPCDSolver — main algorithm
 │   ├── solvers.py             # ExactMaxEntSolver, RakingSolver
@@ -41,6 +42,8 @@ maxent-popsynth-pcd/
 │       └── exact_marginals.py # Analytical marginal computation
 │
 ├── experiments/
+    ├── helpers_a2.py
+    ├── helpers_synistat.py 
 │   ├── run_A0_toy.py          # Exp A0: Gibbs conditionals (K=6)
 │   ├── run_A1a_wu_k8.py       # Exp A1a: Wu benchmark (K=8)
 │   ├── run_A1b_planted_k10.py # Exp A1b: Planted exp-family (K=10)
