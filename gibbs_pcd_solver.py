@@ -68,6 +68,7 @@ class GibbsPCDSolver:
         self.m        = cs.m
         self.alphas   = cs.alphas_array
         self.use_numba = use_numba
+        self.pool_: np.ndarray | None = None
 
         # Precompute attr_lookup for vectorised energy accumulation
         self.lookup = cs.build_attr_lookup()
@@ -272,6 +273,7 @@ class GibbsPCDSolver:
                     break
 
         self.lambdas   = lam
+        self.pool_     = pool          # persistent pool at convergence
         self.fit_time  = time.time() - t_start
         self.final_mre = self.history[-1]['mre']
         self.n_iters   = len(self.history)
