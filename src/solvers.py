@@ -127,6 +127,13 @@ class ExactMaxEntSolver:
             print(f"  [Exact] Converged: MRE={self.final_mre:.2e}  "
                   f"t={self.fit_time:.2f}s")
         return self
+                
+    def get_probs(self) -> np.ndarray:
+        """Return p_{lambda} over the full tuple space X."""
+        if self.lambdas is None:
+            raise RuntimeError("Call fit() before get_probs().")
+        log_unnorm = self.F @ self.lambdas
+        return np.exp(log_unnorm - logsumexp(log_unnorm))
 
     def __repr__(self):
         status = (f"fitted, MRE={self.final_mre:.2e}"
