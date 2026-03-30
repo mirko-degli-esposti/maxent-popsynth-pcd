@@ -102,9 +102,9 @@ print(f"MRE = {solver.final_mre:.4f}  ({solver.n_iters} iterations)")
 Syn-ISTAT is a K=15 Italian demographic benchmark with **analytically exact** marginal targets derived from ISTAT-inspired conditional probability tables (CPTs). It is the first benchmark for MaxEnt population synthesis in the non-enumerable regime (|X| ≈ 1.7 × 10⁸).
 
 ```python
-from src.syn_istat import build_syn_istat_constraint_set
+from src.syn_istat import build_syn_istat_constraint_sets
 
-cs_full, cs_train, cs_heldout = build_syn_istat_constraint_set()
+cs_full, cs_train28, cs_held3 = build_syn_istat_constraint_sets()
 print(cs_full.summary())
 # ConstraintSet: K=15, m=280
 #   Unary   (arity=1): 44
