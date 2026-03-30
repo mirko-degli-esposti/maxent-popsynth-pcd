@@ -15,7 +15,7 @@ def run_gibbs_std(cs, N_pool, n_gibbs_sweeps=5,
                   tol=0.02, window=50, lr=0.01,
                   seed=1, label='', verbose_every=50):
     """Standard GibbsPCDSolver run for Syn-ISTAT experiments."""
-    g = GibbsPCDSolver(cs, use_numba=True)
+    g = GibbsPCDSolver(cs, use_numba=False)
     g.fit(N_pool=N_pool, n_outer=600,
           n_gibbs_sweeps=n_gibbs_sweeps,
           lr=lr, tol=tol, window=window,
