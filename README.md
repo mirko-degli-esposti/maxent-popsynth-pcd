@@ -50,11 +50,6 @@ maxent-popsynth-pcd/
 │   ├── run_AISTAT_diversity.py# Exp A-ISTAT-3: Population diversity
 │   └── run_AISTAT_sensitivity.py # Exp A-ISTAT-3: Pool size sensitivity
 │
-├── paper/                     # LaTeX source
-│   ├── maxent_pcd_paper.tex
-│   ├── references.bib
-│   └── figures/
-│
 ├── requirements.txt
 └── README.md
 ```
