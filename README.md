@@ -62,7 +62,7 @@ maxent-popsynth-pcd/
 ## Installation
 
 ```bash
-git clone https://github.com/mirko-degliesposti/maxent-popsynth-pcd
+git clone https://github.com/mirko-degli-esposti/maxent-popsynth-pcd
 cd maxent-popsynth-pcd
 pip install -r requirements.txt
 ```
