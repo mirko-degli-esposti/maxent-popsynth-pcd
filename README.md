@@ -4,7 +4,7 @@
 
 **Scalable Maximum Entropy Population Synthesis via Persistent Contrastive Divergence**
 
-[![arXiv](https://img.shields.io/badge/arXiv-2603.27312-b31b1b.svg)](https://arxiv.org/abs/2603.27312))
+[![arXiv](https://img.shields.io/badge/arXiv-2603.27312-b31b1b.svg)](https://arxiv.org/abs/2603.27312)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 > ⚠️ **Work in progress** — code and paper under active development.
