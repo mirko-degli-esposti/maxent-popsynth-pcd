@@ -4,7 +4,7 @@
 
 **Scalable Maximum Entropy Population Synthesis via Persistent Contrastive Divergence**
 
-[![arXiv](https://img.shields.io/badge/arXiv-2503.XXXXX-b31b1b.svg)](https://arxiv.org/abs/2503.XXXXX)
+[![arXiv](https://img.shields.io/badge/arXiv-2503.XXXXX-b31b1b.svg)]([https://arxiv.org/abs/2503.XXXXX](https://arxiv.org/abs/2603.27312))
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 > ⚠️ **Work in progress** — code and paper under active development.
@@ -15,7 +15,7 @@
 
 This repository accompanies the paper:
 
-> Degli Esposti, M. (2026). *Scalable Maximum Entropy Population Synthesis via Persistent Contrastive Divergence*. arXiv:2503.XXXXX
+> Degli Esposti, M. (2026). *Scalable Maximum Entropy Population Synthesis via Persistent Contrastive Divergence*. arXiv:2603.27312
 
 **GibbsPCDSolver** replaces the intractable exact expectation step in Maximum Entropy population synthesis with a Persistent Contrastive Divergence estimate from a persistent Gibbs pool — removing the `|X|` barrier that limits exact MaxEnt to K ≈ 20 categorical attributes.
 
