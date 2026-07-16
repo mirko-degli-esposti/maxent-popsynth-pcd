@@ -1,4 +1,7 @@
 """
+
+DEPRECATED — reference NumPy-lookup version, superseded by the CSR/Numba implementation (2026-07-08). Kept for regression comparison.
+
 gibbs_pcd_solver.py
 -------------------
 GibbsPCDSolver: scalable Maximum Entropy population synthesis
