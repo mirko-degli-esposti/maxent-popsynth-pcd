@@ -120,6 +120,45 @@ class ConstraintSet:
             F[:, j] = match
         return F
 
+    def build_indicator_matrix_sparse(self, all_tuples: np.ndarray):
+        """
+        Build F in {0,1}^{|X| x m} in scipy.sparse CSR format.
+
+        Stessa semantica di build_indicator_matrix, ma senza mai allocare
+        l'array denso |X|*m: accumula (row, col) dai match e costruisce
+        la CSR a fine ciclo. Conveniente quando i vincoli sono a blocchi
+        quasi-partizione (densita' tipica ~ n_blocchi/m, qui ~2%).
+
+        Parameters
+        ----------
+        all_tuples : (|X|, K) int array
+
+        Returns
+        -------
+        F : scipy.sparse.csr_matrix, shape (|X|, m), dtype float64
+        """
+        from scipy.sparse import csr_matrix
+
+        X_size = len(all_tuples)
+        rows_all, cols_all = [], []
+        for j in range(self.m):
+            attrs = self.attrs_list[j]
+            vals  = self.vals_list[j]
+            match = np.all(all_tuples[:, attrs] == vals[np.newaxis, :], axis=1)
+            idx = np.nonzero(match)[0]
+            rows_all.append(idx)
+            cols_all.append(np.full(idx.shape, j, dtype=np.int32))
+        rows = np.concatenate(rows_all)
+        cols = np.concatenate(cols_all)
+        data = np.ones(len(rows), dtype=np.float64)
+        F = csr_matrix((data, (rows, cols)), shape=(X_size, self.m))
+        nnz = F.nnz
+        density = nnz / (X_size * self.m) if self.m else 0.0
+        print(f"  [sparse] F: {X_size:,}x{self.m} | nnz={nnz:,} "
+              f"({density*100:.2f}% denso) | "
+              f"~{(F.data.nbytes+F.indices.nbytes+F.indptr.nbytes)/1e6:.1f} MB")
+        return F
+
     def build_attr_lookup(self) -> dict:
         """
         For each attribute k, build the list of entries:
