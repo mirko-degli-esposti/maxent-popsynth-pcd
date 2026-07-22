@@ -77,7 +77,7 @@ class ExactMaxEntSolver:
         log_unnorm = self.F @ lam
         log_Z      = logsumexp(log_unnorm)
         p          = np.exp(log_unnorm - log_Z)
-        alpha_hat  = p @ self.F
+        alpha_hat  = self.F.T @ p
         grad       = alpha_hat - self.alphas
         obj        = log_Z - np.dot(lam, self.alphas)
         return obj, grad
