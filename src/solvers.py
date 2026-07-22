@@ -41,10 +41,11 @@ class ExactMaxEntSolver:
     verbose : bool
     """
 
-    def __init__(self, cs: ConstraintSet, verbose: bool = True):
+    def __init__(self, cs: ConstraintSet, verbose: bool = True, sparse: bool = False):
         self.cs     = cs
         self.K      = cs.K
         self.alphas = cs.alphas_array
+        self.sparse = sparse
 
         ranges = [range(d) for d in cs.domain_sizes]
         if verbose:
@@ -53,11 +54,18 @@ class ExactMaxEntSolver:
         self.all_tuples = np.array(list(cart_product(*ranges)), dtype=np.int32)
         self.X_size = len(self.all_tuples)
 
-        t0   = time.time()
-        self.F = cs.build_indicator_matrix(self.all_tuples)
+        t0 = time.time()
+        if sparse:
+            self.F = cs.build_indicator_matrix_sparse(self.all_tuples)
+        else:
+            self.F = cs.build_indicator_matrix(self.all_tuples)
         if verbose:
+            if sparse:
+                nbytes = self.F.data.nbytes + self.F.indices.nbytes + self.F.indptr.nbytes
+            else:
+                nbytes = self.F.nbytes
             print(f"  [Exact] F built in {time.time()-t0:.2f}s  "
-                  f"({self.F.nbytes / 1e6:.1f} MB)")
+                  f"({nbytes / 1e6:.1f} MB)")
 
         self.lambdas:   np.ndarray | None = None
         self.history:   list[dict]        = []
