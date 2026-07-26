@@ -180,7 +180,9 @@ class GibbsPCDSolver:
             seed:           int   = 1,
             tol:            float = 0.02,
             window:         int   = 50,
-            verbose_every:  int   = 50) -> 'GibbsPCDSolver':
+            verbose_every:  int   = 50,
+            pool_init:      np.ndarray | None = None,
+            lambdas_init:   np.ndarray | None = None) -> 'GibbsPCDSolver':
         """
         Fit GibbsPCDSolver using Adam optimiser with adaptive stopping.
 
@@ -211,8 +213,60 @@ class GibbsPCDSolver:
         -------
         self : GibbsPCDSolver (fitted)
         """
-        lam  = np.zeros(self.m, dtype=np.float64)
-        pool = self._init_pool(N_pool, seed=seed)
+        # --- warm start opzionale -------------------------------------
+        # pool_init e lambdas_init permettono di ripartire da uno stato
+        # gia' vicino all'equilibrio (es. popolazione e lambdas di un CS
+        # piu' piccolo, esteso con attributi nuovi). Devono essere
+        # COERENTI fra loro: un pool ottimo con lambdas nulli viene
+        # distrutto dai primi sweep, che campionano dalla distribuzione
+        # uniforme implicata da lambda=0.
+        if lambdas_init is not None:
+            lam = np.asarray(lambdas_init, dtype=np.float64).ravel().copy()
+            if lam.shape != (self.m,):
+                raise ValueError(
+                    f"lambdas_init: attesa forma ({self.m},), "
+                    f"ricevuta {lam.shape}")
+        else:
+            lam = np.zeros(self.m, dtype=np.float64)
+
+        if pool_init is not None:
+            pool = np.ascontiguousarray(pool_init, dtype=np.int32)
+            if pool.ndim != 2 or pool.shape[1] != self.K:
+                raise ValueError(
+                    f"pool_init: attesa forma (N, {self.K}), "
+                    f"ricevuta {pool.shape}")
+            ds = np.asarray(self.cs.domain_sizes, dtype=np.int64)
+            if (pool < 0).any() or (pool >= ds[None, :]).any():
+                bad = [k for k in range(self.K)
+                       if pool[:, k].min() < 0 or pool[:, k].max() >= ds[k]]
+                raise ValueError(
+                    f"pool_init: indici fuori dai domini per gli attributi "
+                    f"{bad} (domain_sizes={ds.tolist()})")
+            n_given = len(pool)
+            if n_given < N_pool:
+                # replica: ogni individuo diventa piu' catene indipendenti,
+                # che divergono gia' al primo sweep. N_pool resta quello
+                # richiesto, cosi' il pavimento stocastico non peggiora.
+                reps = int(np.ceil(N_pool / n_given))
+                pool = np.tile(pool, (reps, 1))[:N_pool]
+                print(f"  [Gibbs] warm start: pool replicato "
+                      f"{n_given:,} -> {N_pool:,} individui ({reps}x)")
+            elif n_given > N_pool:
+                rng_sub = np.random.default_rng(seed)
+                idx = rng_sub.choice(n_given, size=N_pool, replace=False)
+                pool = pool[idx]
+                print(f"  [Gibbs] warm start: pool sottocampionato "
+                      f"{n_given:,} -> {N_pool:,}")
+            else:
+                pool = pool.copy()
+            pool = np.ascontiguousarray(pool, dtype=np.int32)
+        else:
+            pool = self._init_pool(N_pool, seed=seed)
+
+        if verbose_every and (pool_init is not None or lambdas_init is not None):
+            print(f"  [Gibbs] warm start: pool={'fornito' if pool_init is not None else 'casuale'}, "
+                  f"lambdas={'forniti' if lambdas_init is not None else 'zero'}")
+        # --------------------------------------------------------------
 
         sweep_fn = (self._gibbs_sweep_numba
                     if (self.use_numba and self._numba_kernel is not None)

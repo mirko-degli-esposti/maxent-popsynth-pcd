@@ -41,36 +41,52 @@ class ExactMaxEntSolver:
     verbose : bool
     """
 
-    def __init__(self, cs: ConstraintSet, verbose: bool = True, sparse: bool = False):
+    def __init__(self, cs: ConstraintSet, verbose: bool = True,
+                 sparse: bool = False, F=None, all_tuples=None):
         self.cs     = cs
         self.K      = cs.K
         self.alphas = cs.alphas_array
         self.sparse = sparse
 
-        ranges = [range(d) for d in cs.domain_sizes]
+        X_size = int(np.prod(cs.domain_sizes))
+        self.X_size = X_size
         if verbose:
-            X_size = int(np.prod(cs.domain_sizes))
             print(f"  [Exact] Enumeration: |X| = {X_size:,}, m = {cs.m}")
-        self.all_tuples = np.array(list(cart_product(*ranges)), dtype=np.int32)
-        self.X_size = len(self.all_tuples)
+
+        # all_tuples serve SOLO a costruire F: se F arriva dall'esterno, non serve.
+        if all_tuples is not None:
+            self.all_tuples = all_tuples
+        elif F is None:
+            g = np.meshgrid(*[np.arange(d) for d in cs.domain_sizes], indexing="ij")
+            self.all_tuples = np.stack([x.ravel() for x in g],
+                                       axis=1).astype(np.int32)
+        else:
+            self.all_tuples = None
 
         t0 = time.time()
-        if sparse:
-            self.F = cs.build_indicator_matrix_sparse(self.all_tuples)
+        if F is not None:
+            if F.shape != (X_size, cs.m):
+                raise ValueError(f"F fornita ha shape {F.shape}, "
+                                 f"attesa ({X_size}, {cs.m})")
+            self.F = F
+            if verbose:
+                print(f"  [Exact] F riusata dall'esterno (nessuna ricostruzione)")
         else:
-            self.F = cs.build_indicator_matrix(self.all_tuples)
-        if verbose:
             if sparse:
-                nbytes = self.F.data.nbytes + self.F.indices.nbytes + self.F.indptr.nbytes
+                self.F = cs.build_indicator_matrix_sparse(self.all_tuples)
             else:
-                nbytes = self.F.nbytes
-            print(f"  [Exact] F built in {time.time()-t0:.2f}s  "
-                  f"({nbytes / 1e6:.1f} MB)")
+                self.F = cs.build_indicator_matrix(self.all_tuples)
+            if verbose:
+                nbytes = (self.F.data.nbytes + self.F.indices.nbytes
+                          + self.F.indptr.nbytes) if sparse else self.F.nbytes
+                print(f"  [Exact] F built in {time.time()-t0:.2f}s  "
+                      f"({nbytes / 1e6:.1f} MB)")
 
         self.lambdas:   np.ndarray | None = None
         self.history:   list[dict]        = []
         self.fit_time:  float             = 0.0
         self.final_mre: float             = float('nan')
+        self._last_grad: np.ndarray | None = None
 
     def _phi_and_grad(self, lam: np.ndarray):
         """Dual objective Phi(lambda) and gradient nabla Phi = E_{p_lam}[f] - alpha."""
@@ -80,6 +96,7 @@ class ExactMaxEntSolver:
         alpha_hat  = self.F.T @ p
         grad       = alpha_hat - self.alphas
         obj        = log_Z - np.dot(lam, self.alphas)
+        self._last_grad = grad          # <-- per il callback, evita il ricalcolo
         return obj, grad
 
     def fit(self, tol=1e-9, max_iter=1000,
@@ -110,7 +127,7 @@ class ExactMaxEntSolver:
                 return np.exp(log_unnorm - logsumexp(log_unnorm))
 
         def callback(lam):
-            _, grad = self._phi_and_grad(lam)
+            grad = self._last_grad      # gia' calcolato da L-BFGS: niente matvec
             mre = np.mean(np.abs(grad) / (self.alphas + 1e-12))
             self.history.append({'iter': step[0], 'mre': float(mre)})
             step[0] += 1
@@ -181,6 +198,7 @@ class RakingSolver:
         self.fit_time:  float             = 0.0
         self.final_mre: float             = float('nan')
         self.n_iters:   int               = 0
+        
 
     def fit(self, population: np.ndarray,
             max_iter: int = 1000,

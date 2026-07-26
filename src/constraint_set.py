@@ -97,20 +97,41 @@ class ConstraintSet:
     #  Matrices and lookup for solvers                                      #
     # ------------------------------------------------------------------ #
 
-    def build_indicator_matrix(self, all_tuples: np.ndarray) -> np.ndarray:
+    def build_indicator_matrix(self, all_tuples=None) -> np.ndarray:
         """
-        Build F in {0,1}^{|X| x m}: F[x, j] = f_j(x).
+        F in {0,1}^{|X| x m}: F[x, j] = f_j(x), densa, C-ordered.
 
-        Used by the exact solver to compute E_p[f] in vectorised form.
-
-        Parameters
-        ----------
-        all_tuples : (|X|, K) int array — full enumeration of X.
-
-        Returns
-        -------
-        F : (|X|, m) float64 array
+        Costruzione per slice su vista mixed-radix, O(nnz_j) per vincolo.
+        Bitwise identica a build_indicator_matrix_ref. `all_tuples` e' ignorato
+        (tenuto per compatibilita' di firma).
         """
+        try:
+            from .fast_F import build_F_fast          # come package: src.constraint_set
+        except ImportError:
+            from fast_F import build_F_fast           # come modulo isolato
+        return build_F_fast(self)
+
+    def build_indicator_matrix_sparse(self, all_tuples=None):
+        """
+        F in {0,1}^{|X| x m}, scipy.sparse CSR.
+
+        Indici generati aritmeticamente, array preallocati. Bitwise identica a
+        build_indicator_matrix_sparse_ref. `all_tuples` e' ignorato.
+        """
+        try:
+            from .fast_F import build_F_fast_sparse
+        except ImportError:
+            from fast_F import build_F_fast_sparse
+        return build_F_fast_sparse(self)
+        return build_F_fast_sparse(self)
+
+    # ------------------------------------------------------------------ #
+    #  Implementazioni di riferimento (scansione di |X| per ogni vincolo). #
+    #  Non piu' usate in produzione: restano come termine di paragone      #
+    #  permanente per test_F.py.                                           #
+    # ------------------------------------------------------------------ #
+
+    def build_indicator_matrix_ref(self, all_tuples: np.ndarray) -> np.ndarray:
         X_size = len(all_tuples)
         F = np.zeros((X_size, self.m), dtype=np.float64)
         for j in range(self.m):
@@ -120,23 +141,7 @@ class ConstraintSet:
             F[:, j] = match
         return F
 
-    def build_indicator_matrix_sparse(self, all_tuples: np.ndarray):
-        """
-        Build F in {0,1}^{|X| x m} in scipy.sparse CSR format.
-
-        Stessa semantica di build_indicator_matrix, ma senza mai allocare
-        l'array denso |X|*m: accumula (row, col) dai match e costruisce
-        la CSR a fine ciclo. Conveniente quando i vincoli sono a blocchi
-        quasi-partizione (densita' tipica ~ n_blocchi/m, qui ~2%).
-
-        Parameters
-        ----------
-        all_tuples : (|X|, K) int array
-
-        Returns
-        -------
-        F : scipy.sparse.csr_matrix, shape (|X|, m), dtype float64
-        """
+    def build_indicator_matrix_sparse_ref(self, all_tuples: np.ndarray):
         from scipy.sparse import csr_matrix
 
         X_size = len(all_tuples)
@@ -154,7 +159,7 @@ class ConstraintSet:
         F = csr_matrix((data, (rows, cols)), shape=(X_size, self.m))
         nnz = F.nnz
         density = nnz / (X_size * self.m) if self.m else 0.0
-        print(f"  [sparse] F: {X_size:,}x{self.m} | nnz={nnz:,} "
+        print(f"  [sparse-ref] F: {X_size:,}x{self.m} | nnz={nnz:,} "
               f"({density*100:.2f}% denso) | "
               f"~{(F.data.nbytes+F.indices.nbytes+F.indptr.nbytes)/1e6:.1f} MB")
         return F
