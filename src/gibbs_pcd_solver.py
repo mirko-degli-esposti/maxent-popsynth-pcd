@@ -152,10 +152,55 @@ class GibbsPCDSolver:
     #  Expectation estimation                                               #
     # ------------------------------------------------------------------ #
 
+    def _build_block_index(self):
+        """
+        Raggruppa i vincoli per firma di attributi. Dentro una firma, ogni
+        individuo cade in ESATTAMENTE una cella: un bincount sul codice
+        mixed-radix del blocco produce tutte le alpha_hat del blocco insieme.
+
+        Costo della stima: O(N * sum_b arita_b) invece di O(N * m).
+        A K10C: 18 firme su 2611 vincoli, fattore ~145x.
+        """
+        ds = np.asarray(self.cs.domain_sizes, dtype=np.int64)
+        groups = {}
+        for j in range(self.m):
+            groups.setdefault(tuple(self.cs.attrs_list[j].tolist()), []).append(j)
+        blocks = []
+        for sig, js in groups.items():
+            attrs = np.array(sig, dtype=np.int64)
+            sizes = ds[attrs]
+            n_cells = int(np.prod(sizes))
+            cells = np.empty(len(js), dtype=np.int64)
+            for t, j in enumerate(js):
+                code = 0
+                for p in range(len(attrs)):
+                    code = code * int(sizes[p]) + int(self.cs.vals_list[j][p])
+                cells[t] = code
+            blocks.append((attrs, sizes, n_cells, cells,
+                           np.array(js, dtype=np.int64)))
+        return blocks
+
     def _estimate_expectations(self, pool: np.ndarray) -> np.ndarray:
         """
         Estimate alpha_hat_j = (1/N) sum_i f_j(pool[i]) for all j.
+        Equivalente bitwise a _estimate_expectations_ref.
         """
+        if getattr(self, "_blocks", None) is None:
+            self._blocks = self._build_block_index()
+        N = pool.shape[0]
+        alpha_hat = np.empty(self.m, dtype=np.float64)
+        code = np.empty(N, dtype=np.int64)
+        for attrs, sizes, n_cells, cells, js in self._blocks:
+            code[:] = pool[:, attrs[0]]
+            for p in range(1, len(attrs)):
+                code *= sizes[p]
+                code += pool[:, attrs[p]]
+            cnt = np.bincount(code, minlength=n_cells)
+            alpha_hat[js] = cnt[cells] / N
+        return alpha_hat
+
+    def _estimate_expectations_ref(self, pool: np.ndarray) -> np.ndarray:
+        """Riferimento: scansione del pool per ogni vincolo. O(N * m)."""
         alpha_hat = np.zeros(self.m, dtype=np.float64)
         for j in range(self.m):
             attrs = self.cs.attrs_list[j]
