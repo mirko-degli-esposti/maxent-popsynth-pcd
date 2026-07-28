@@ -219,6 +219,7 @@ class GibbsPCDSolver:
             n_outer:        int   = 500,
             n_gibbs_sweeps: int   = 5,
             lr:             float = 0.01,
+            lr_tau:         float = 0.0,     # 0 = passo costante
             beta1:          float = 0.9,
             beta2:          float = 0.999,
             eps:            float = 1e-8,
@@ -227,7 +228,10 @@ class GibbsPCDSolver:
             window:         int   = 50,
             verbose_every:  int   = 50,
             pool_init:      np.ndarray | None = None,
-            lambdas_init:   np.ndarray | None = None) -> 'GibbsPCDSolver':
+            lambdas_init:   np.ndarray | None = None,
+            lambdas_ref:    np.ndarray | None = None,
+            anneal_steps:   int   = 0,
+            anneal_sweeps:  int   = 3) -> 'GibbsPCDSolver':
         """
         Fit GibbsPCDSolver using Adam optimiser with adaptive stopping.
 
@@ -316,7 +320,30 @@ class GibbsPCDSolver:
         sweep_fn = (self._gibbs_sweep_numba
                     if (self.use_numba and self._numba_kernel is not None)
                     else self._gibbs_sweep)
-
+        # --- burn-in con ricottura sui lambda ------------------------
+        # Blocchi quasi-deterministici (es. GC: background x cittadinanza,
+        # 6 celle su 12 con alpha=0) rendono la catena RIDUCIBILE ai
+        # lambda finali: la condizionale ha p_max=1 e la coordinata non
+        # cambia mai valore (misurato: 0.00% di mosse su cittadinanza a
+        # K9C e K10C, contro 25% a K7C dove il blocco GC non c'e').
+        # Il cold start non ne soffre perche' parte da lambda=0, dove la
+        # catena e' irriducibile, e la barriera si forma solo dopo che le
+        # proporzioni fra classi ergodiche si sono equilibrate: e' una
+        # ricottura implicita. Il warm start atterra invece direttamente
+        # sui lambda finali e congela le proporzioni che trova.
+        # Qui la ricottura si ripristina esplicitamente.
+        if lambdas_init is not None and anneal_steps > 0:
+            for t_a in range(1, anneal_steps + 1):
+                lam_a = (t_a / anneal_steps) * lam
+                for _ in range(anneal_sweeps):
+                    pool = sweep_fn(pool, lam_a)
+            if verbose_every:
+                a0 = self._estimate_expectations(pool)
+                mre0 = float(np.mean(np.abs(a0 - self.alphas)
+                                     / (self.alphas + 1e-12)))
+                print(f"  [Gibbs] burn-in ricotto: {anneal_steps} passi x "
+                      f"{anneal_sweeps} sweep | MRE dopo burn-in={mre0:.5f}")
+                
         # Adam state
         m1 = np.zeros(self.m, dtype=np.float64)
         m2 = np.zeros(self.m, dtype=np.float64)
@@ -340,22 +367,39 @@ class GibbsPCDSolver:
             m2  = beta2 * m2 + (1.0 - beta2) * grad ** 2
             m1h = m1 / (1.0 - beta1 ** t)
             m2h = m2 / (1.0 - beta2 ** t)
-            lam -= lr * m1h / (np.sqrt(m2h) + eps)
+
+            # Robbins-Monro: con passo costante l'approssimazione stocastica
+            # non converge a lambda*, ma si distribuisce stazionariamente
+            # attorno ad esso con larghezza ~lr. Misurato a K10C:
+            # KL(exact||gibbs)=0.104 nat, invariante rispetto a N (fattore 8)
+            # e a n_gibbs_sweeps (fattore 8) -> non e' varianza di stima
+            # ne' ritardo del pool, e' il passo costante.
+            lr_t = lr / (1.0 + t / lr_tau) if lr_tau > 0 else lr
+
+            lam -= lr_t * m1h / (np.sqrt(m2h) + eps)
 
             mre = float(np.mean(
                 np.abs(alpha_hat - self.alphas) / (self.alphas + 1e-12)
             ))
 
             self.history.append({
-                't':         t,
-                'mre':       mre,
-                'alpha_hat': alpha_hat.copy(),
-                'elapsed':   time.time() - t_start,
+                'iter': t, 'mre': float(mre),
+                'lr': float(lr_t),
+                'lam_norm': float(np.linalg.norm(lam)),
+                'lam_dist': (float(np.linalg.norm(lam - lambdas_ref))
+                             if lambdas_ref is not None else float('nan')),
             })
+            #if verbose_every and t % verbose_every == 0:
+            #    print(f"  [Gibbs] iter {t:4d}  MRE={mre:.5f}  "
+            #         f"N={N_pool}  t={time.time()-t_start:.1f}s")
 
             if verbose_every and t % verbose_every == 0:
-                print(f"  [Gibbs] iter {t:4d}  MRE={mre:.5f}  "
-                      f"N={N_pool}  t={time.time()-t_start:.1f}s")
+                extra = ""
+                if lambdas_ref is not None:
+                    extra = (f"  |lam|={np.linalg.norm(lam):7.2f}"
+                             f"  |lam-lam*|={np.linalg.norm(lam - lambdas_ref):7.2f}")
+                print(f"  [Gibbs] iter {t:4d}  MRE={mre:.5f}  N={N_pool}  "
+                      f"t={time.time()-t_start:.1f}s{extra}")
 
             # Adaptive stopping rule (Eq. 7 in paper)
             # Stops when relative improvement of min(MRE) over two
