@@ -7,7 +7,11 @@
 [![arXiv](https://img.shields.io/badge/arXiv-2603.27312-b31b1b.svg)](https://arxiv.org/abs/2603.27312)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-> ⚠️ **Work in progress** — code and paper under active development.
+
+> **Status** — paper under review at ACM TKDD. The code that produced the
+> published results is tagged [`submission-tkdd`](../../tree/submission-tkdd);
+> `main` carries later performance work that does not change what the solver
+> converges to. See [Reproducibility](#reproducibility).
 
 ---
 
@@ -32,30 +36,39 @@ Key results:
 maxent-popsynth-pcd/
 │
 ├── src/
-    ├── evaluator.py
-│   ├── constraint_set.py      # ConstraintSet — core data structure
-│   ├── gibbs_pcd_solver.py    # GibbsPCDSolver — main algorithm
-│   ├── solvers.py             # ExactMaxEntSolver, RakingSolver
-│   ├── generators.py          # WuGenerator, PlantedExpFamilyGenerator
-│   └── syn_istat/             # Syn-ISTAT benchmark
-│       ├── attr_meta.py       # Attribute definitions and CPTs
-│       └── exact_marginals.py # Analytical marginal computation
+│   ├── constraint_set.py         # ConstraintSet — core data structure
+│   ├── gibbs_pcd_solver.py       # GibbsPCDSolver — main algorithm
+│   ├── gibbs_pcd_solver_old.py   # deprecated NumPy-lookup version, kept
+│   │                             #   deliberately as a regression reference
+│   ├── solvers.py                # ExactMaxEntSolver, RakingSolver
+│   ├── generators.py             # WuGenerator, PlantedExpFamilyGenerator
+│   ├── evaluator.py              # MRE, entropy, diversity metrics
+│   ├── fast_F.py                 # mixed-radix slice construction of F
+│   ├── test_F.py                 # regression tests for fast_F
+│   └── syn_istat/                # Syn-ISTAT benchmark
+│       ├── attr_meta.py          # attribute definitions and CPTs
+│       └── exact_marginals.py    # analytical marginal computation
 │
 ├── experiments/
-    ├── helpers_a2.py
-    ├── helpers_synistat.py 
-│   ├── run_A0_toy.py          # Exp A0: Gibbs conditionals (K=6)
-│   ├── run_A1a_wu_k8.py       # Exp A1a: Wu benchmark (K=8)
-│   ├── run_A1b_planted_k10.py # Exp A1b: Planted exp-family (K=10)
-│   ├── run_A1c_sensitivity.py # Exp A1c: Pool size & sweeps grid
-│   ├── run_A2_scaling.py      # Exp A2: Scaling K=12..50
-│   ├── run_AISTAT_heldout.py  # Exp A-ISTAT-2: Held-out ternary
-│   ├── run_AISTAT_diversity.py# Exp A-ISTAT-3: Population diversity
-│   └── run_AISTAT_sensitivity.py # Exp A-ISTAT-3: Pool size sensitivity
+│   ├── helpers_synistat.py       # shared runner for the Syn-ISTAT scripts
+│   ├── helpers_a2.py             # shared runner for the scaling study
+│   ├── run_A0_toy.py             # Exp A0: Gibbs conditionals (K=6)
+│   ├── run_A1a_wu_k8.py          # Exp A1a: Wu benchmark (K=8)
+│   ├── run_A1b_planted_k10.py    # Exp A1b: planted exp-family (K=10)
+│   ├── run_A1c_sensitivity.py    # Exp A1c: pool size & sweeps grid
+│   ├── run_A2_scaling.py         # Exp A2: scaling K=12..50, Numba speedup
+│   ├── run_AISTAT_heldout.py     # Exp A-ISTAT-2: held-out ternary
+│   ├── run_AISTAT_diversity.py   # Exp A-ISTAT-3: population diversity
+│   └── run_AISTAT_sensitivity.py # Exp A-ISTAT-3: pool size sensitivity
 │
 ├── requirements.txt
 └── README.md
 ```
+
+`gibbs_pcd_solver_old.py` is **not** leftover code. Keeping two
+implementations that must produce identical output is a permanent
+regression test: the CSR/Numba kernel is checked against the NumPy-lookup
+reference, and any divergence between them is a bug in one of the two.
 
 ---
 
@@ -67,9 +80,13 @@ cd maxent-popsynth-pcd
 pip install -r requirements.txt
 ```
 
-Optional Numba acceleration (recommended for K ≥ 20):
+Numba is **optional everywhere**: every experiment runs without it, only
+slower. The CSR kernel avoids materialising the `(N, d_k)` float64 buffer
+that dominates a Gibbs sweep (~1.4 GB at K=15), which is where its
+advantage comes from — it computes the same quantities, not different ones.
+
 ```bash
-pip install numba
+pip install numba        # recommended for K ≥ 20 and for Exp A2
 ```
 
 ---
@@ -124,12 +141,43 @@ Each script in `experiments/` is self-contained and saves figures to `results/fi
 # Experiment A0 — Gibbs conditionals sanity check (K=6, ~2 min)
 python experiments/run_A0_toy.py
 
-# Experiment A2 — Scaling K=12..50 (requires Numba, ~2h)
-python experiments/run_A2_scaling.py --use_numba
+# Experiment A2 — Scaling K=12..50 (~2h with Numba)
+python experiments/run_A2_scaling.py
+python experiments/run_A2_scaling.py --no-numba    # same results, slower
 
 # Syn-ISTAT diversity experiment (~40 min at N=100K)
 python experiments/run_AISTAT_diversity.py --N_pool 100000
 ```
+
+---
+
+## Reproducibility
+
+The results reported in the paper were produced with the code at tag
+`submission-tkdd` (31 March 2026):
+
+```bash
+git checkout submission-tkdd
+```
+
+**Accuracy and timing are measured separately, by design.**
+`experiments/helpers_synistat.py` runs the accuracy experiments with
+`use_numba=False`: the CSR kernel computes the same expectations as the
+NumPy path, so disabling it keeps those runs independent of JIT
+availability and of the machine. The speedup is measured on its own by
+`experiments/run_A2_scaling.py`, which takes `use_numba` as a parameter and
+compares both paths on the same constraint sets.
+
+**What `main` adds after the submission**, none of it changing the fixed
+point the solver converges to:
+
+| commit | change |
+|---|---|
+| `1cb32af` | Gibbs warm start (`pool_init` / `lambdas_init`); mixed-radix slice construction of `F`, reused inside the solver |
+| `c70175c` | block-wise expectation estimation via mixed-radix `bincount` — constraints sharing an attribute signature are estimated in one pass (~145× at K=15+) |
+| `89ac15e` | harmonic step-size decay (`lr_tau`), `lambdas_ref` to track `‖λ − λ*‖` |
+
+The tag `pre-warmstart` marks the state just before that work began.
 
 ---
 
@@ -140,7 +188,7 @@ python experiments/run_AISTAT_diversity.py --N_pool 100000
   author  = {Degli Esposti, Mirko},
   title   = {Scalable Maximum Entropy Population Synthesis
              via Persistent Contrastive Divergence},
-  journal = {arXiv preprint arXiv:2503.XXXXX},
+  journal = {arXiv preprint arXiv:2603.27312},
   year    = {2026}
 }
 ```
