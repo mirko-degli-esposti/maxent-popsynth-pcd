@@ -135,7 +135,7 @@ CPT tables and exact marginal computation code are in `src/syn_istat/`.
 
 ## Reproducing paper experiments
 
-Each script in `experiments/` is self-contained and saves figures to `results/figures/`.
+Each script in `experiments/` is self-contained and writes figures to `figures/` (override with `--outdir`).
 
 ```bash
 # Experiment A0 — Gibbs conditionals sanity check (K=6, ~2 min)
@@ -143,7 +143,7 @@ python experiments/run_A0_toy.py
 
 # Experiment A2 — Scaling K=12..50 (~2h with Numba)
 python experiments/run_A2_scaling.py
-python experiments/run_A2_scaling.py --no-numba    # same results, slower
+python experiments/run_A2_scaling.py --no_numba    # same results, slower
 
 # Syn-ISTAT diversity experiment (~40 min at N=100K)
 python experiments/run_AISTAT_diversity.py --N_pool 100000
