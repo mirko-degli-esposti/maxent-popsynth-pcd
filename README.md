@@ -197,7 +197,7 @@ The tag `pre-warmstart` marks the state just before that work began.
 
 ## Acknowledgements
 
-The author thanks François Pachet (ImagineAllThePeople) for stimulating discussions and for making available a preprint of Pachet & Zucker (2026) prior to publication, and Jean-Daniel Zucker (IRD-UMMISCO) for ongoing collaboration on the UrbIA project.
+The author thanks François Pachet (ImagineAllThePeople) for stimulating discussions and for making available a preprint of Pachet & Zucker (2026) prior to publication.
 
 ---
 
